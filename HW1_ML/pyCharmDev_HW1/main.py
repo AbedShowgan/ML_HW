@@ -37,7 +37,9 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import OneHotEncoder
+import sklearn
 
 ##graph 1
 def bar_chart_age_count(data_frame):
@@ -117,8 +119,141 @@ def response_count_by_education(data_frame):
         plt.ylabel('Count')
         plt.show()
 
+
+
+        ## ---Q2: K-MEANS---
+
+# Scale Data Using MinMax Scaler and Encode it
+def min_max_scale(data_frame):
+    # Get the size of the DataFrame
+    rows, columns = data_frame.shape
+    # Scale the data using MinMaxScaler
+    min_max_scaler = MinMaxScaler()
+    # fit and transform the data
+
+    # Identify numerical and non-numerical columns
+    numerical_columns = ['Year_Birth', 'Income', 'Recency', 'MntWines', 'MntFruits', 'MntMeatProducts',
+                         'MntFishProducts', 'MntSweetProducts', 'MntGoldProds', 'NumDealsPurchases', 'NumWebPurchases',
+                         'NumStorePurchases', 'NumWebVisitsMonth']
+    non_numerical_columns = [col for col in data_frame_2.columns if col not in numerical_columns]
+
+    # Separate the data into numerical and non-numerical DataFrames
+    numerical_columns = ['Income', 'Recency', 'MntWines', 'MntFruits', 'MntMeatProducts', 'MntFishProducts',
+                         'MntSweetProducts', 'MntGoldProds', 'NumCatalogPurchases', 'NumDealsPurchases',
+                         'NumWebPurchases', 'NumStorePurchases', 'NumWebVisitsMonth']
+    non_numerical_columns = [col for col in data_frame_2.columns if col not in numerical_columns]
+
+    # Separate the data into numerical and non-numerical DataFrames
+    numerical_data = data_frame_2[numerical_columns]
+    non_numerical_data = data_frame_2[non_numerical_columns]
+
+    # Scale the numerical data using MinMaxScaler
+    min_max_scaler = MinMaxScaler()
+    scaled_numerical_data = pd.DataFrame(min_max_scaler.fit_transform(numerical_data), columns=numerical_data.columns)
+
+    # Concatenate the scaled numerical data with the non-numerical data
+    scaled_data_frame_2 = pd.concat([non_numerical_data, scaled_numerical_data], axis=1)
+
+    print("Original Data:")
+    print(data_frame_2.head())
+    print("\nScaled Data:")
+    print(scaled_data_frame_2.head())
+    # Encode categorical variables
+
         #**Insight** - We can perceive form Graph 3 that the most prevalent level of education is "Graduation" level and the least one is "Basic",
         # The No-Response:Response Ratio of all Levels is very high, meaning that most people DO NOT respond
+
+
+
+
+def one_hot_encode(df):
+        categorical_vars = ['Education', 'Marital_Status', 'Kidhome', 'Teenhome', 'AcceptedCmp3', 'AcceptedCmp4',
+                            'AcceptedCmp5', 'AcceptedCmp1', 'AcceptedCmp2', 'Complain', 'Z_CostContact', 'Z_Revenue',
+                            'Response']
+        # Encode categorical variables
+        encoder = OneHotEncoder()
+        categorical_data = df[categorical_vars]
+        # Fit and transform the categorical data
+        encoded_categorical_data = encoder.fit_transform(categorical_data)
+        print("Encoded variables: \n")
+        print(encoded_categorical_data)
+
+        # Create a DataFrame with the one-hot encoded features
+        encoded_df = pd.DataFrame(encoded_categorical_data)
+
+        # Display the final DataFrame
+        print("Encoded Data:")
+        print(encoded_df.head())
+
+
+
+def scale_and_encode(df):
+
+    rows, columns = df.shape
+    # Scale the data using MinMaxScaler
+    min_max_scaler = MinMaxScaler()
+    # fit and transform the data
+
+    # Identify numerical and non-numerical columns and other ones
+    #13
+    numerical_columns = ['Year_Birth', 'Income', 'Recency', 'MntWines', 'MntFruits', 'MntMeatProducts',
+                         'MntFishProducts', 'MntSweetProducts', 'MntGoldProds', 'NumDealsPurchases', 'NumWebPurchases',
+                         'NumStorePurchases', 'NumWebVisitsMonth']
+    #13
+    categorical_columns = ['Education', 'Marital_Status', 'Kidhome', 'Teenhome', 'AcceptedCmp3', 'AcceptedCmp4',
+                           'AcceptedCmp5', 'AcceptedCmp1', 'AcceptedCmp2', 'Complain', 'Z_CostContact', 'Z_Revenue',
+                           'Response']
+    other_columns = ['ID','Dt_Customer']
+    #non_numerical_columns = [col for col in df.columns if col not in numerical_columns]
+  #  non_numerical_data = df[non_numerical_columns]
+    other_data = df[other_columns]
+    numerical_data = df[numerical_columns]
+    categorical_data = df[categorical_columns]
+
+    scaled_numerical_data = pd.DataFrame(min_max_scaler.fit_transform(numerical_data), columns=numerical_data.columns)
+
+    # Concatenate the scaled numerical data with the non-numerical data
+    scaled_df = pd.concat([other_data, scaled_numerical_data], axis=1)
+
+
+
+    # Encode categorical variables
+    encoder = OneHotEncoder()
+    # 13
+    categorical_columns = ['Education', 'Marital_Status', 'Kidhome', 'Teenhome', 'AcceptedCmp3', 'AcceptedCmp4',
+                           'AcceptedCmp5', 'AcceptedCmp1', 'AcceptedCmp2', 'Complain', 'Z_CostContact', 'Z_Revenue',
+                           'Response']
+    # Fit and transform the categorical data
+   # encoded_categorical_data = encoder.fit_transform(categorical_data)
+    encoded_categorical_data = encoder.fit_transform(categorical_data).toarray()
+
+    print("Categorical data: Num of cols " + str(categorical_data.shape[1]))
+    print(categorical_data)
+
+    print("ENCODED Categorical data: Num of cols " + str(encoded_categorical_data.shape[1]))
+    print(encoded_categorical_data)
+
+    # Get the feature names
+    feature_names = encoder.get_feature_names(input_features=categorical_columns)
+   # feature_names_array = np.array(encoder.categories_).ravel()
+    feature_names_array = np.array(encoder.categories_, dtype=object).ravel()
+    print("Feature names: " , feature_names_array)
+
+    # Create a DataFrame with the one-hot encoded features and feature names
+    encoded_df = pd.DataFrame(encoded_categorical_data, columns=feature_names)
+    print("Encoded variables: \n")
+    print(encoded_categorical_data)
+    print("encoded_df: Num of cols " + str(encoded_df.shape[1]))
+    #encoded_df = pd.get_dummies(df, columns=['categorical_columns', ])
+    #print("encoded df size "  + str(encoded_df.size()))
+
+
+    # Concatenate the encoded categorical variables with the scaled data
+    final_data = pd.concat([scaled_df, encoded_df], axis=1)
+    final_data.to_csv('pre_processed_customer_segmentation.csv', index=False)
+    # Display the final DataFrame
+    print("Final Data:")
+    print(final_data.head())
 if __name__ == '__main__':
     print("Hello world")
 
@@ -129,69 +264,23 @@ if __name__ == '__main__':
     # load the data
     # Provide the path to your Excel file
     path = 'C:\\Users\\user\\Dropbox\\Semester E\\Machine Learning\\HW\\HW1_ML\\customer_segmentation.csv'
-    # a = 5
-    # # Load data into a DataFrame
-    data_frame = pd.read_csv(path)
-    # Get the size of the DataFrame
-    ##rows, columns = data_frame.shape
-    ### -----Loading Done-----
-
-
-
-    #bar_chart_age_count(data_frame)
-    # Example data
-
-
-    #kids = data_frame['Kidhome']
-  #  income = data_frame['Income']
-    #
-    # # Get the maximum value for the 'kids' column
-    # max_kids = data['Kidhome'].max()
-    #
-    # # Get the maximum value for the 'income' column
-    # max_income = data['Income'].max()
-    # # Create a scatter plot
-    # plt.figure(figsize=(8, 4))
-    # plt.scatter(income, kids, color='blue', alpha=0.7)
-    #
-    # # Customize the plot
-    # plt.title('Scatter Plot of Kids vs Income(10k)')
-    # plt.xlabel('Number of Kids')
-    # plt.ylabel('Income')
-    # plt.grid(True)
-    #
-    # # Show the plot
-    # plt.show()
-
-
-
-
-
-
-
-    # Create a bar plot
-    # Calculate age based on the current year (2024)
-    # current_year = 2024
-    # data_frame['age'] = current_year - data_frame['Year_Birth']
-    #
-    # # Define age categories
-    # bins = [0, 18, 35, 55, 75, data_frame['age'].max()]
-    # labels = ['0-18', '18-35', '35-55', '55-75', '75+']
-    #
-    # # Add a new column for age category
-    # data_frame['age_category'] = pd.cut(data_frame['age'], bins=bins, labels=labels, right=False)
-    #
-    # # Create a bar plot
-    # plt.figure(figsize=(12, 6))
-    # sns.countplot(x='age_category', data=data_frame, palette='viridis')
-    # plt.title('Number of People by Age Category')
-    # plt.xlabel('Age Category')
-    # plt.ylabel('Number of People')
-    # plt.show()
+    df = pd.read_csv(path)
+    df_2 = pd.read_csv(path)
 
     #**Insight** -  The Insight we can take from Graph 1 is that most Customers are between the Ages of 35 and 75, We have Some elderly over the age of 75 and some who are young (18 to 35) We Also do not have under age Customers.
 
 
     ## ---GRAPH 2: Pie Chart Showing Customer Preferences By Food Categories---
    # pie_chart_food_categories(data_frame)
-    response_count_by_education(data_frame)
+
+   # response_count_by_education(df)
+
+    # Year_Birth, Income, Recency,Nums and Mnts
+  #  min_max_scale(df)
+ #   one_hot_encode(df_2)
+    scale_and_encode(df_2)
+
+
+
+    # Encode categorical variables
+    ##Education, Marital Status, CAMPAGAINS, etc
