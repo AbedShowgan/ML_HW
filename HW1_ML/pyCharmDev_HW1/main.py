@@ -40,6 +40,7 @@ import seaborn as sns
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder
 import sklearn
+from sklearn.decomposition import PCA
 
 ##graph 1
 def bar_chart_age_count(data_frame):
@@ -234,13 +235,16 @@ def scale_and_encode(df):
     print(encoded_categorical_data)
 
     # Get the feature names
-    feature_names = encoder.get_feature_names(input_features=categorical_columns)
+ #   feature_names = encoder.get_feature_names(input_features=categorical_columns)
+    categories = [f"{col}_{category}" for col, cats in zip(categorical_data.columns, encoder.categories_) for category
+                  in cats]
    # feature_names_array = np.array(encoder.categories_).ravel()
     feature_names_array = np.array(encoder.categories_, dtype=object).ravel()
     print("Feature names: " , feature_names_array)
 
     # Create a DataFrame with the one-hot encoded features and feature names
-    encoded_df = pd.DataFrame(encoded_categorical_data, columns=feature_names)
+   # encoded_df = pd.DataFrame(encoded_categorical_data, columns=feature_names)
+    encoded_df = pd.DataFrame(encoded_categorical_data, columns=categories)
     print("Encoded variables: \n")
     print(encoded_categorical_data)
     print("encoded_df: Num of cols " + str(encoded_df.shape[1]))
@@ -250,10 +254,21 @@ def scale_and_encode(df):
 
     # Concatenate the encoded categorical variables with the scaled data
     final_data = pd.concat([scaled_df, encoded_df], axis=1)
-    final_data.to_csv('pre_processed_customer_segmentation.csv', index=False)
+   # final_data.to_csv('pre_processed_customer_segmentation_v2.csv', index=False)
     # Display the final DataFrame
     print("Final Data:")
     print(final_data.head())
+    return final_data
+
+
+def k_means_n5_wines_meats(df):
+    # Apply k-Means on the 'MntWines' and 'MntMeatProducts' features with n_clusters=5
+    wines_products_cols = ['MntWines', 'MntMeatProducts']
+    extracted_data_set = df[wines_products_cols]
+    res = KMeans(n_clusters=5, random_state=0, n_init='auto')
+    res.fit(extracted_data_set)
+    # Visualize the clusters
+    sns.scatterplot(data=extracted_data_set, x='MntWines', y='MntMeatProducts', hue=res.labels_)
 if __name__ == '__main__':
     print("Hello world")
 
@@ -280,7 +295,97 @@ if __name__ == '__main__':
  #   one_hot_encode(df_2)
     scale_and_encode(df_2)
 
+    k_means_n5_wines_meats(scale_and_encode(df_2))
 
 
-    # Encode categorical variables
-    ##Education, Marital Status, CAMPAGAINS, etc
+
+
+    ####Elbow-Method:
+    # Define the number of clusters to test (you can choose a range)
+    k_vals = range(1, 10)
+    df_copy = final_data.copy()
+    df_copy_no_date = df_copy.drop(columns=['Dt_Customer'])
+    df_copy_no_date.fillna(0, inplace=True)
+    # Initialize an empty list to store the variance explained for each k
+    variance_per_k = []
+
+    # Fit KMeans with different values of k and calculate variance explained
+    for k in k_vals:
+        kmeans = KMeans(n_clusters=k, random_state=0)
+        kmeans.fit(df_copy_no_date)
+        variance_per_k.append(kmeans.inertia_)  # kmeans.inertia_ gives the variance explained by the model
+
+    # Plot the elbow curve
+    plt.figure(figsize=(8, 6))
+    plt.plot(k_vals, variance_per_k, marker='o')
+    plt.title('Elbow Method for Optimal k')
+    plt.xlabel('Number of Clusters (k)')
+    plt.ylabel('Variance Explained')
+    plt.show()
+
+
+    ### Silhouette
+    # Specify the range of clusters (k) to try
+    k_values = range(2, 11)
+
+    # List to store silhouette scores for each k
+    silhouette_scores = []
+
+    # Iterate over different values of k
+    for k in k_values:
+        # Initialize KMeans model
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+
+        # Fit the model and obtain cluster labels
+        cluster_labels = kmeans.fit_predict(df_copy_no_date)
+
+        # Calculate silhouette score
+        silhouette_avg = silhouette_score(df_copy_no_date, cluster_labels)
+        silhouette_scores.append(silhouette_avg)
+
+    # Plot the silhouette scores for each k
+    plt.plot(k_values, silhouette_scores, marker='o')
+    plt.xlabel('Number of Clusters (k)')
+    plt.ylabel('Silhouette Score')
+    plt.title('Silhouette Score for Different Values of k')
+    plt.text(3, -2, 'Best K using the Sillhouette Method: K=2', fontsize=12, ha='center')
+    plt.show()
+
+
+
+#PCA
+# Adjust n_components as needed
+
+df_no_date_copy2 = df_copy_no_date.copy()
+#df_no_date_copy = df_no_date.drop(columns=['ID'])
+#df_no_id_no_date_copy = df_copy_no_date.copy()
+n_components = 2
+# #scale ID too so it wont mess up our pca
+# column_to_scale = df_no_date_copy2['ID'].values.reshape(-1, 1)
+# Create a DataFrame with the principal components
+pca = PCA(n_components)
+pca_df = pca.fit_transform(df_no_date_copy2)
+
+
+# Plotting the PCA
+# Step 2: Visualize the PCA
+plt.figure(figsize=(8, 6))
+plt.scatter(pca_df[:, 0], pca_df[:, 1], cmap='viridis', edgecolor='k', s=60)
+plt.title('PCA of Customer Segmentation Pre-Processed Dataset: \n')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.show()
+
+# Step 3: Find the variance explained in this PCA
+explained_variance_ratio = pca.explained_variance_ratio_
+total_variance_explained = np.sum(explained_variance_ratio)
+
+# Display explained variance
+print(f"Variance explained by PC1: {explained_variance_ratio[0]*100:.2f}%")
+print(f"Variance explained by PC2: {explained_variance_ratio[1]*100:.2f}%")
+print(f"Total variance explained by both components: {total_variance_explained*100:.2f}%")
+
+
+
+#**A**: The Variance Explained by this 2 component PCA means that PC1 is responsible for 16.15% of the TOTAL variance observed in the data samples, while PC2 is responsible for the remaining 14.73%.
+However, these 2 components explain only 30.88% of the total variance in the data.
